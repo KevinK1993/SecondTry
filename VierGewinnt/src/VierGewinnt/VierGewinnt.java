@@ -36,8 +36,7 @@ public class VierGewinnt extends Application {
     private int gewinnzaehlerSpieler2_horizontal;
     private int gewinnzaehlerSpieler1_vertikal;
     private int gewinnzaehlerSpieler2_vertikal;
-    private int gewinnzaehlerSpieler1_diagonal_links;
-    private int gewinnzaehlerSpieler1_diagonal_rechts;
+    private boolean spiel_beendet = false;
     
 	DataOutputStream toServer = null;
 	DataInputStream fromServer = null;
@@ -50,9 +49,9 @@ public class VierGewinnt extends Application {
     private Button verbinden_button = new Button();
     private TextField ip_adresse = new TextField();
 	    
-    String[][] gesetzteFelder = new String[7][7]; 
+    String[][] gesetzteFelder = new String[12][12]; 
     String[] daten_vomServer = new String[3];
-    Circle[][] kreisliste = new Circle[10][10];  
+    Circle[][] kreisliste = new Circle[10][10]; 
     
     @Override
     public void start(Stage primaryStage) {
@@ -87,7 +86,7 @@ public class VierGewinnt extends Application {
                 kreis.setOnMouseClicked(new EventHandler<MouseEvent>(){
                 	@Override
                     public void handle(MouseEvent t) {
-                    	if(spieler_am_zug.equals(spielernummer)){
+                    	if(spieler_am_zug.equals(spielernummer)  && spiel_beendet != true){
                     		
                     		// Das nächste freie Feld in einer angeklickten Spalte wird gesucht
 	                        int freieZeile = finde_freiesFeld(aktuelleSpalte);
@@ -134,7 +133,12 @@ public class VierGewinnt extends Application {
 
 			fromServer = new DataInputStream(socket.getInputStream());
 			this.spielernummer = fromServer.readUTF();
-			spieler.setText("Spieler " + spielernummer);
+			if(spielernummer.equals("1") || spielernummer.equals("2")){
+				spieler.setText("Spieler " + spielernummer);
+			} else {
+				spieler.setText("Zuschauer");
+			}
+			
 						
 			toServer = new DataOutputStream(socket.getOutputStream());
 			
@@ -192,8 +196,8 @@ public class VierGewinnt extends Application {
         	
         	// Für die Gewinnabfrage werden die belegten Felder und die dazugehörigen Spieler in ein Array gespeichert
         	gesetzteFelder[i][k] = daten_vomServer[2];    	 
-            horizontal_gewonnen(i);
-            vertikal_gewonnen(k);
+            horizontal_gewonnen(i, k);
+            vertikal_gewonnen(i, k);
             links_hoch_diagonal_gewonnen(i, k);
             rechts_hoch_diagonal_gewonnen(i, k);
              
@@ -224,79 +228,97 @@ public class VierGewinnt extends Application {
 		}		
     }
     
-    public void horizontal_gewonnen(int aktuelle_spalte){
+    public void horizontal_gewonnen(int aktuelle_spalte, int aktuelle_zeile){
+    	String gesetzterChip = gesetzteFelder[aktuelle_spalte][aktuelle_zeile];
         for (int i=0;i<spalten;i++)
         {
-            if (gesetzteFelder[aktuelle_spalte][i].equals("1")){
+            if (gesetzteFelder[aktuelle_spalte][i].equals(gesetzterChip)){
                 gewinnzaehlerSpieler1_horizontal++;
             } else {
                 gewinnzaehlerSpieler1_horizontal=0;
             }
             if (gewinnzaehlerSpieler1_horizontal>=4) {
-            	gewonnen.setText("Spieler 1 hat gewonnen!");
-            }
-            
-            if (gesetzteFelder[aktuelle_spalte][i].equals("2")){
-                gewinnzaehlerSpieler2_horizontal++;
-            } else {
-                gewinnzaehlerSpieler2_horizontal=0;
-            }
-            if (gewinnzaehlerSpieler2_horizontal>=4) {
-            	gewonnen.setText("Spieler 2 hat gewonnen!");
+            	gewonnen.setText("Spieler " +  gesetzterChip + " hat gewonnen!");
+            	spiel_beendet = true;
             }
         }      
     }
     
-    public void vertikal_gewonnen(int aktuelle_zeile){
+    public void vertikal_gewonnen(int aktuelle_spalte, int aktuelle_zeile){
+    	String gesetzterChip = gesetzteFelder[aktuelle_spalte][aktuelle_zeile];
         for (int i=0;i<zeilen;i++)
         {
-            if (gesetzteFelder[i][aktuelle_zeile].contentEquals("1")){
+            if (gesetzteFelder[i][aktuelle_zeile].contentEquals(gesetzterChip)){
                 gewinnzaehlerSpieler1_vertikal++;
             } else {
                 gewinnzaehlerSpieler1_vertikal=0;
             }
             if (gewinnzaehlerSpieler1_vertikal>=4) {
-            	gewonnen.setText("Spieler 1 hat gewonnen!");
-            }
-            
-            if (gesetzteFelder[i][aktuelle_zeile].equals("2")){
-                gewinnzaehlerSpieler2_vertikal++;
-            } else {
-                gewinnzaehlerSpieler2_vertikal=0;
-            }
-            if (gewinnzaehlerSpieler2_vertikal>=4) {
-            	gewonnen.setText("Spieler 2 hat gewonnen!");
+            	gewonnen.setText("Spieler " +  gesetzterChip + " hat gewonnen!");
+            	spiel_beendet = true;
             }
         }
     }
     
     public void links_hoch_diagonal_gewonnen(int aktuelle_spalte, int aktuelle_zeile){
     	
-		// Check diagonal from top left to down right
-		for (int j = 0; j < zeilen - 3; j++) {
-			System.out.println("test");
-			for (int i = 0; i < spalten - 3; i++) {
-				System.out.println("test2");
-				if ((!gesetzteFelder[i][j].equals("")) && (gesetzteFelder[i][j] == gesetzteFelder[i + 1][j + 1])
-						&& (gesetzteFelder[i][j] == gesetzteFelder[i + 2][j + 2])
-						&& (gesetzteFelder[i][j]) == gesetzteFelder[i + 3][j + 3]) {
-					gewonnen.setText("Spieler 2 hat gewonnen!");
-				}
+		// Diagonal links nach oben
+    	
+    	String gesetzterChip = gesetzteFelder[aktuelle_spalte][aktuelle_zeile];
+    	
+    	int gleicheFarbe = 1;
+		
+    	for (int zaehler = 1; zaehler <= 3; zaehler++) {
+			if (gesetzteFelder[aktuelle_spalte + zaehler][aktuelle_zeile - zaehler].equals(gesetzterChip)){
+				gleicheFarbe++;
+			} else {
+				break;
 			}
-		}
+    	}
+    	
+    	for (int zaehler = 1; zaehler <= 3; zaehler++) {
+			if (gesetzteFelder[aktuelle_spalte - zaehler][aktuelle_zeile + zaehler].equals(gesetzterChip)){
+				gleicheFarbe++;
+			} else {
+				break;
+			}
+    	}
+    	if(gleicheFarbe == 4){
+    		gewonnen.setText("Spieler " + gesetzterChip + " hat gewonnen!");
+    		spiel_beendet = true;
+    	}
+    	
+
     }
     
     public void rechts_hoch_diagonal_gewonnen(int aktuelle_spalte, int aktuelle_zeile){
-		// Check diagonal from top right to down left
-		for (int j = 0; j < zeilen - 3; j++) {
-			for (int i = spalten - 1; i > 2; i--) {
-				if ((!gesetzteFelder[i][j].equals("")) && (gesetzteFelder[i][j] == gesetzteFelder[i + 1][j - 1])
-						&& (gesetzteFelder[i][j] == gesetzteFelder[i + 2][j - 2])
-						&& (gesetzteFelder[i][j] == gesetzteFelder[i + 3][j - 3])) {
-					gewonnen.setText("Spieler 2 hat gewonnen!");
-				}
+		
+		// Diagonal rechts nach oben
+    	
+    	String gesetzterChip = gesetzteFelder[aktuelle_spalte][aktuelle_zeile];
+    	
+    	int gleicheFarbe = 1;
+		
+    	for (int zaehler = 1; zaehler <= 3; zaehler++) {
+			if (gesetzteFelder[aktuelle_spalte + zaehler][aktuelle_zeile + zaehler].equals(gesetzterChip)){
+				gleicheFarbe++;
+			} else {
+				break;
 			}
-		}
+    	}
+    	
+    	for (int zaehler = 1; zaehler <= 3; zaehler++) {
+			if (gesetzteFelder[aktuelle_spalte - zaehler][aktuelle_zeile - zaehler].equals(gesetzterChip)){
+				gleicheFarbe++;
+			} else {
+				break;
+			}
+    	}
+    	if(gleicheFarbe == 4){
+    		gewonnen.setText("Spieler " + gesetzterChip + " hat gewonnen!");
+    		spiel_beendet = true;
+    	}
+    	
     }
 
     public static void main(String[] args) {
