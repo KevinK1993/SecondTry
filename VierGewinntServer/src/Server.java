@@ -20,6 +20,7 @@ public class Server extends Application {
 	private int clientNummer = 0;
 	private TextArea haupttextbox = new TextArea();
 	ServerSocket serverSocket;
+	// Liste aller mit dem Server verbundenen Clients
 	static List<Socket> clients = new ArrayList<Socket>();
 
 	@Override
@@ -31,6 +32,7 @@ public class Server extends Application {
 		primaryStage.setTitle("Server");
 		primaryStage.show();
 
+		// Neuer Thread für den Server
 		new Thread( () -> {
 			try {
 				serverSocket = new ServerSocket(5888);
@@ -53,6 +55,7 @@ public class Server extends Application {
 					String clientnummer = Integer.toString(clientNummer);
 					outputToClient.writeUTF(clientnummer);
 					
+					// Neuer Thread für die Kommunikation zwischen Server und Client
 					new Thread(new ThreadClient(socket)).start();
 				}
 			} catch (Exception e) {
@@ -77,7 +80,7 @@ public class Server extends Application {
 				
 				while (true) {
 					String normal = inputFromClient.readUTF();
-					
+				// Nachricht wird an alle Clients geschickt (Echo Server)	
 				for(Socket socket : clients){
 						DataOutputStream outputToClient = new DataOutputStream(socket.getOutputStream());
 						outputToClient.writeUTF(normal);
